@@ -1,14 +1,14 @@
 BOARD_SIZE=10
 
 class Ship:
-    def __init__(self,name,length,positions):
-        self.name=name
-        delf.length=length
-        self.positons=positions
-        self.hit=[]
-    
+    def __init__(self, name, length, positions):
+        self.name = name
+        self.length = length
+        self.positions = positions
+        self.hits = []
+
     def is_sunk(self):
-        return len(self.hit)==len(self.positions)
+        return len(self.hits) == len(self.positions)
 
 
 class Board:
@@ -40,7 +40,7 @@ class Board:
                 raise ValueError("The ship would overlap another ship.")
             positions.append((new_row, new_col))
 
-        ship = Ship(name, positions)
+        ship = Ship(name, length, positions)
         self.ships.append(ship)
         for position in positions:
             self.ship_at[position] = ship
