@@ -50,6 +50,9 @@ def pass_computer(player_name):
 def display_battle_boards(player, opponent):
     own_lines = player.board.display_lines(show_ships=True)
     enemy_lines = opponent.board.display_lines(show_ships=False)
+    ships = player.board.ships
+    afloat = sum(not ship.is_sunk() for ship in ships)
+    print(f"Ships afloat: {afloat}/{len(ships)}")
     print("YOUR FLEET".ljust(30) + "ENEMY TARGET MAP")
     for own, enemy in zip(own_lines, enemy_lines):
         print(own.ljust(30) + enemy)
