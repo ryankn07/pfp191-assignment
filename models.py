@@ -1,5 +1,3 @@
-"""The main objects used by the Battleship game."""
-
 FLEET = [
     ("Aircraft Carrier", 5),
     ("Battleship", 4),
@@ -195,3 +193,4 @@ class Game:
             stats_for_file, played_at
         )
         return record.to_dict()
+
