@@ -1,14 +1,24 @@
-BOARD_SIZE=10
+"""The main objects used by the Battleship game."""
+
+FLEET = [
+    ("Aircraft Carrier", 5),
+    ("Battleship", 4),
+    ("Cruiser", 3),
+    ("Submarine", 3),
+    ("Destroyer", 2),
+]
+
+BOARD_SIZE = 10
+
 
 class Ship:
-    def __init__(self,name,length,positions):
-        self.name=name
-        delf.length=length
-        self.positons=positions
-        self.hit=[]
-    
+    def __init__(self, name, positions):
+        self.name = name
+        self.positions = positions
+        self.hits = []
+
     def is_sunk(self):
-        return len(self.hit)==len(self.positions)
+        return len(self.hits) == len(self.positions)
 
 
 class Board:
@@ -91,8 +101,97 @@ class Board:
                 cells.append(mark)
             lines.append(f"{row + 1:>2} " + " ".join(cells))
         return lines
-        
+
+
 class Player:
     def __init__(self, player_id, name):
         self.player_id = player_id
         self.name = name
+        self.board = Board()
+
+
+class MatchRecord:
+    def __init__(self, match_id, player1, player2, winner, stats, played_at):
+        self.match_id = match_id
+        self.player1 = player1
+        self.player2 = player2
+        self.winner = winner
+        self.stats = stats
+        self.played_at = played_at
+
+    def to_dict(self):
+        return {
+            "match_id": self.match_id,
+            "played_at": self.played_at,
+            "player1_id": self.player1.player_id,
+            "player1_name": self.player1.name,
+            "player2_id": self.player2.player_id,
+            "player2_name": self.player2.name,
+            "winner_id": self.winner.player_id,
+            "winner_name": self.winner.name,
+            "stats": self.stats,
+        }
+
+
+class Game:
+    def __init__(self, player1, player2):
+        if player1.player_id == player2.player_id:
+            raise ValueError("A player cannot play against themselves.")
+        self.players = [player1, player2]
+        self.current_turn = 0
+        self.status = "SETUP"
+        self.winner = None
+        self.stats = {
+            player1.player_id: {"shots": 0, "hits": 0, "misses": 0},
+            player2.player_id: {"shots": 0, "hits": 0, "misses": 0},
+        }
+
+    def current_player(self):
+        return self.players[self.current_turn]
+
+    def opponent(self):
+        return self.players[1 - self.current_turn]
+
+    def start(self):
+        for player in self.players:
+            actual = [(ship.name, len(ship.positions))
+                      for ship in player.board.ships]
+            if actual != FLEET:
+                raise ValueError("Both players must place the complete fleet.")
+        self.status = "PLAYING"
+
+    def attack(self, row, col):
+        if self.status != "PLAYING":
+            raise ValueError("There is no active match.")
+
+        attacker = self.current_player()
+        defender = self.opponent()
+        result, ship_name = defender.board.receive_attack(row, col)
+
+        record = self.stats[attacker.player_id]
+        record["shots"] += 1
+        if result == "MISS":
+            record["misses"] += 1
+        else:
+            record["hits"] += 1
+
+        if defender.board.all_sunk():
+            self.status = "FINISHED"
+            self.winner = attacker
+        else:
+            self.current_turn = 1 - self.current_turn
+
+        return result, ship_name
+
+    def make_record(self, match_id, played_at):
+        if self.status != "FINISHED":
+            raise ValueError("Cannot record an unfinished match.")
+        player1, player2 = self.players
+        stats_for_file = {}
+        for player_id, counts in self.stats.items():
+            stats_for_file[str(player_id)] = counts.copy()
+        record = MatchRecord(
+            match_id, player1, player2, self.winner,
+            stats_for_file, played_at
+        )
+        return record.to_dict()
