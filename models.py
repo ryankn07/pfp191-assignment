@@ -8,7 +8,43 @@ FLEET = [
     ("Destroyer", 2),
 ]
 
-BOARD_SIZE = 10
+# Kich thuoc ban co mac dinh. Co the doi thanh 40, 100, ... khi can.
+BOARD_SIZE = 30
+
+
+def column_name(index):
+    """Convert a zero-based column index to an Excel-style name.
+
+    Examples: 0 -> A, 25 -> Z, 26 -> AA, 27 -> AB.
+    """
+    if not isinstance(index, int) or index < 0:
+        raise ValueError("Column index must be a non-negative integer.")
+
+    name = ""
+    while index >= 0:
+        index, remainder = divmod(index, 26)
+        name = chr(ord("A") + remainder) + name
+        index -= 1
+
+    return name
+
+
+def column_index(name):
+    """Convert an Excel-style column name to a zero-based index.
+
+    Examples: A -> 0, Z -> 25, AA -> 26, AB -> 27.
+    """
+    name = name.strip().upper()
+    if not name:
+        raise ValueError("Column name cannot be empty.")
+
+    index = 0
+    for letter in name:
+        if letter < "A" or letter > "Z":
+            raise ValueError("Column name must contain letters A-Z only.")
+        index = index * 26 + ord(letter) - ord("A") + 1
+
+    return index - 1
 
 
 class Ship:
@@ -82,9 +118,17 @@ class Board:
         return True
 
     def display_lines(self, show_ships):
-        # Tọa đô bảng "
-        column_names = " ".join("ABCDEFGHIJ"[:self.size])  
-        lines = ["   " + column_names]
+        """Return the board as text without revealing hidden enemy ships."""
+        # Generate column labels automatically: A, B, ..., Z, AA, AB, ...
+        columns = [column_name(col) for col in range(self.size)]
+
+        # Keep column and row labels aligned for boards of different sizes.
+        column_width = max(2, max(len(name) for name in columns))
+        row_width = len(str(self.size))
+        header = " " * (row_width + 1) + " ".join(
+            f"{name:>{column_width}}" for name in columns
+        )
+        lines = [header]
 
         for row in range(self.size):
             cells = []
@@ -99,15 +143,21 @@ class Board:
                 else:
                     mark = "?"
                 cells.append(mark)
-            lines.append(f"{row + 1:>2} " + " ".join(cells))
+
+            row_label = f"{row + 1:>{row_width}}"
+            cell_text = " ".join(
+                f"{mark:>{column_width}}" for mark in cells
+            )
+            lines.append(row_label + " " + cell_text)
+
         return lines
 
 
 class Player:
-    def __init__(self, player_id, name):
+    def __init__(self, player_id, name, board_size=BOARD_SIZE):
         self.player_id = player_id
         self.name = name
-        self.board = Board()
+        self.board = Board(board_size)
 
 
 class MatchRecord:  #lưu trữ kết quả
