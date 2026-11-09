@@ -1,24 +1,7 @@
 # Battleship - PFP191
 
-Battleship là trò chơi bắn tàu cho hai người thay phiên trên cùng một máy. Mỗi người đặt 5 tàu trên bàn cờ 10×10. Ai đánh chìm toàn bộ tàu đối thủ trước sẽ thắng.
+Battleship là trò chơi bắn tàu cho hai người thay phiên trên cùng một máy. Mỗi người đặt 5 tàu trên bàn cờ . Ai đánh chìm toàn bộ tàu đối thủ trước sẽ thắng.
 
-## Chạy game
-
-Cần Git và Python 3. Mở PowerShell rồi chạy:
-
-```powershell
-git clone https://github.com/ryankn07/pfp191-assignment.git
-cd pfp191-assignment
-python main.py
-```
-
-Nếu đã clone repo, mở PowerShell trong thư mục repo rồi cập nhật:
-
-```powershell
-git switch main
-git pull --ff-only
-python main.py
-```
 
 ## Cách chơi
 
