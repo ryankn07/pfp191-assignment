@@ -4,7 +4,8 @@ from datetime import datetime
 import os
 
 from data_manager import DataError
-from models import BOARD_SIZE, FLEET, Game, Player
+from models import (BOARD_SIZE, FLEET, Game, Player,
+                     column_index, column_name)
 from player_manager import print_players
 
 
@@ -16,25 +17,42 @@ def clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
 
 
-def parse_coordinate(text):
+def parse_coordinate(text, board_size=BOARD_SIZE):
+    """Convert a coordinate such as A1 or AA10 to (row, column)."""
     text = text.strip().upper().replace(" ", "")
-    if len(text) < 2 or text[0] not in "ABCDEFGHIJ":
-        raise ValueError("Use a coordinate from A1 to J10.")
+
+    # Read the column letters at the beginning of the coordinate.
+    split_at = 0
+    while split_at < len(text) and text[split_at].isalpha():
+        split_at += 1
+
+    column_text = text[:split_at]
+    row_text = text[split_at:]
+
+    # A coordinate must contain column letters followed by a row number.
+    if not column_text or not row_text or not row_text.isdigit():
+        raise ValueError("Use a coordinate such as A1, Z10, or AA1.")
+
     try:
-        row = int(text[1:]) - 1
+        col = column_index(column_text)
+        row = int(row_text) - 1
     except ValueError:
-        raise ValueError("Use a coordinate from A1 to J10.")
-    col = "ABCDEFGHIJ".index(text[0])
-    if not 0 <= row < BOARD_SIZE:
-        raise ValueError("Use a coordinate from A1 to J10.")
+        raise ValueError("Use a valid coordinate such as A1 or AA10.")
+
+    if not 0 <= row < board_size or not 0 <= col < board_size:
+        last_column = column_name(board_size - 1)
+        raise ValueError(
+            f"Coordinate must be between A1 and {last_column}{board_size}."
+        )
+
     return row, col
 
 
-def ask_coordinate(message):
+def ask_coordinate(message, board_size=BOARD_SIZE):
     text = input(message).strip()
     if text.upper() == "Q":
         raise GameCanceled()
-    return parse_coordinate(text)
+    return parse_coordinate(text, board_size)
 
 
 def pass_computer(player_name):
@@ -53,9 +71,10 @@ def display_battle_boards(player, opponent):
     ships = player.board.ships
     afloat = sum(not ship.is_sunk() for ship in ships)
     print(f"Ships afloat: {afloat}/{len(ships)}")
-    print("YOUR FLEET".ljust(30) + "ENEMY TARGET MAP")
+    own_width = max(len(line) for line in own_lines) + 4
+    print("YOUR FLEET".ljust(own_width) + "ENEMY TARGET MAP")
     for own, enemy in zip(own_lines, enemy_lines):
-        print(own.ljust(30) + enemy)
+        print(own.ljust(own_width) + enemy)
     print("S = Ship, X = Hit, O = Miss, ~ = Water, ? = Unknown")
 
 
@@ -88,7 +107,9 @@ def place_fleet(player):
             print(f"\nPlace {ship_name} ({length} cells)")
             print("H = Horizontal, V = Vertical")
             try:
-                row, col = ask_coordinate("Starting coordinate (or Q): ")
+                row, col = ask_coordinate(
+                    "Starting coordinate (or Q): ", player.board.size
+                )
                 direction = input("Direction (H/V): ").strip().upper()
                 if direction == "Q":
                     raise GameCanceled()
@@ -134,7 +155,9 @@ def play_match(manager, storage):
                 print("\nPLAYER TURN:", player.name)
                 display_battle_boards(player, opponent)
                 try:
-                    row, col = ask_coordinate("Attack coordinate (or Q): ")
+                    row, col = ask_coordinate(
+                        "Attack coordinate (or Q): ", opponent.board.size
+                    )
                     result, ship_name = game.attack(row, col)
                     break
                 except ValueError as error:
