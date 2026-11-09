@@ -1,3 +1,5 @@
+"""The main objects used by the Battleship game."""
+
 FLEET = [
     ("Aircraft Carrier", 5),
     ("Battleship", 4),
@@ -48,32 +50,32 @@ def column_index(name):
 class Ship:
     def __init__(self, name, positions):
         self.name = name
-        self.positions = positions
-        self.hits = []
+        self.positions = positions #vị trí (row,clo)
+        self.hits = [] #tàu đã bị địch bắn
 
-    def is_sunk(self):
+    def is_sunk(self): #kiểm tra xem đã chìm chưa
         return len(self.hits) == len(self.positions)
 
 
 class Board:
     def __init__(self, size=BOARD_SIZE):
         self.size = size
-        self.ships = []
-        self.ship_at = {}
-        self.shots = {}
+        self.ships = [] #danh sách tàu đặt lên bàn 
+        self.ship_at = {}  # map (row,col)
+        self.shots = {}   #Dictionary lưu các phát bắn đã thực hiện trên bàn cờ này theo dạng (row, col): "X" (trúng) hoặc (row, col): "O"
 
-    def is_inside(self, row, col):
+    def is_inside(self, row, col):  #kiểm tra tính hợp lệ của tọa độ
         return 0 <= row < self.size and 0 <= col < self.size
 
     def place_ship(self, name, length, row, col, direction):
         if direction not in ("H", "V"):
             raise ValueError("Direction must be H or V.")
-        if not isinstance(length, int) or length < 1:
+        if not isinstance(length, int) or length < 1:  
             raise ValueError("Ship length must be a positive integer.")
-        if not self.is_inside(row, col):
+        if not self.is_inside(row, col):  
             raise ValueError("Starting coordinate is outside the board.")
 
-        positions = []
+        positions = []  #danh sasch tọa độ tàu
         for step in range(length):
             new_row = row + step if direction == "V" else row
             new_col = col + step if direction == "H" else col
@@ -86,22 +88,22 @@ class Board:
 
         ship = Ship(name, positions)
         self.ships.append(ship)
-        for position in positions:
+        for position in positions: #đăng kí tạo độ cho từng tàu
             self.ship_at[position] = ship
         return ship
 
-    def receive_attack(self, row, col):
+    def receive_attack(self, row, col): #attack
         if not self.is_inside(row, col):
             raise ValueError("Attack coordinate is outside the board.")
         if (row, col) in self.shots:
             raise ValueError("This coordinate has already been attacked.")
 
         ship = self.ship_at.get((row, col))
-        if ship is None:
-            self.shots[(row, col)] = "O"
+        if ship is None:  #ko có tàu thì đánh dấu miss"
+            self.shots[(row, col)] = "O" 
             return "MISS", None
 
-        self.shots[(row, col)] = "X"
+        self.shots[(row, col)] = "X"   
         ship.hits.append((row, col))
         if ship.is_sunk():
             return "SUNK", ship.name
@@ -135,9 +137,9 @@ class Board:
                 if coordinate in self.shots:
                     mark = self.shots[coordinate]
                 elif show_ships and coordinate in self.ship_at:
-                    mark = "S"
+                    mark = "S"   #ô của mình
                 elif show_ships:
-                    mark = "~"
+                    mark = "~"    # ô trống
                 else:
                     mark = "?"
                 cells.append(mark)
@@ -158,7 +160,7 @@ class Player:
         self.board = Board(board_size)
 
 
-class MatchRecord:
+class MatchRecord:  #lưu trữ kết quả
     def __init__(self, match_id, player1, player2, winner, stats, played_at):
         self.match_id = match_id
         self.player1 = player1
@@ -181,12 +183,12 @@ class MatchRecord:
         }
 
 
-class Game:
+class Game: #quản lí luồng game
     def __init__(self, player1, player2):
         if player1.player_id == player2.player_id:
             raise ValueError("A player cannot play against themselves.")
         self.players = [player1, player2]
-        self.current_turn = 0
+        self.current_turn = 0  #danh sách lượt chơi
         self.status = "SETUP"
         self.winner = None
         self.stats = {
@@ -208,7 +210,7 @@ class Game:
                 raise ValueError("Both players must place the complete fleet.")
         self.status = "PLAYING"
 
-    def attack(self, row, col):
+    def attack(self, row, col):  # cơ chế tấn công
         if self.status != "PLAYING":
             raise ValueError("There is no active match.")
 
@@ -223,7 +225,7 @@ class Game:
         else:
             record["hits"] += 1
 
-        if defender.board.all_sunk():
+        if defender.board.all_sunk():  #kiểm tra hạm đội chìm chưa
             self.status = "FINISHED"
             self.winner = attacker
         else:
@@ -231,7 +233,7 @@ class Game:
 
         return result, ship_name
 
-    def make_record(self, match_id, played_at):
+    def make_record(self, match_id, played_at):  #ghi kết quả
         if self.status != "FINISHED":
             raise ValueError("Cannot record an unfinished match.")
         player1, player2 = self.players
@@ -243,4 +245,3 @@ class Game:
             stats_for_file, played_at
         )
         return record.to_dict()
-
